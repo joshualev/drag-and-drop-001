@@ -43,7 +43,7 @@ const draggingState: DraggableState = { type: 'dragging' };
 const stateStyles: {
 	[Key in DraggableState['type']]?: string | undefined;
 } = {
-	dragging: 'opacity-0',
+	dragging: 'opacity-40',
 };
 
 const selectedStyles = 'bg-indigo-100';
@@ -53,14 +53,13 @@ const draggingStyles = 'opacity-40';
 const primaryButton = 0;
 
 type CardPrimitiveProps = {
-	isDragging?: boolean;
+	// isDragging?: boolean;
 	isSelected: boolean;
 	item: Person;
 	state: DraggableState;
 	onClick?: MouseEventHandler;
 };
 
-// 
 function MoveToOtherColumnItem({
 	targetColumn,
 	startIndex,
@@ -85,7 +84,7 @@ function MoveToOtherColumnItem({
 	return (
 		<button
 			onClick={onClick}
-			className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+			className="block w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900"
 			role="menuitem"
 		>
 			{targetColumn.title}
@@ -170,7 +169,7 @@ function LazyDropdownItems({ userId, onClose }: { userId: string; onClose: () =>
 			</button>
 			{moveColumnOptions.length > 0 && (
 				<>
-					<div className="border-t border-gray-100 my-1"></div>
+					<div className="my-1 border-t border-gray-100"></div>
 					<div className="px-3 py-2 text-xs font-semibold text-gray-500">Move to</div>
 					{moveColumnOptions.map((column) => (
 						<MoveToOtherColumnItem
@@ -188,7 +187,7 @@ function LazyDropdownItems({ userId, onClose }: { userId: string; onClose: () =>
 
 
 const CardPrimitive = forwardRef<HTMLDivElement, CardPrimitiveProps>(function CardPrimitive(
-	{ item, isDragging, isSelected, state, onClick },
+	{ item, isSelected, state, onClick },
 	ref,
 ) {
 	const { avatarUrl, name, role, userId } = item;
@@ -197,7 +196,7 @@ const CardPrimitive = forwardRef<HTMLDivElement, CardPrimitiveProps>(function Ca
 		<div
 			ref={ref}
 			data-testid={`item-${userId}`}
-			className={`relative grid grid-cols-[auto_1fr_auto] gap-2 items-center p-2 rounded-lg shadow-md bg-white ${stateStyles[state.type]} ${isSelected ? selectedStyles : ''} ${isSelected && isDragging ? draggingStyles : ''}`}
+			className={`relative grid grid-cols-[auto_1fr_auto] gap-2 items-center p-2 rounded-lg shadow-md bg-white ${stateStyles[state.type]} ${isSelected ? selectedStyles : ''} ${isSelected && state.type === 'dragging' ? draggingStyles : ''}`}
 			onClick={onClick}
 			role="button"
 			tabIndex={0}
@@ -225,7 +224,7 @@ const wasMultiSelectKeyUsed = (event: MouseEvent | KeyboardEvent) => event.shift
 
 type CardProps = {
 	item: Person;
-	isDragging: boolean;
+	// isDragging: boolean;
 	isSelected: boolean;
 	selectedCount: number;
 	multiSelectTo: (id: string) => void;
@@ -235,7 +234,7 @@ type CardProps = {
 
 export const Card = memo(function Card({
 	item,
-	isDragging,
+	// isDragging,
 	isSelected,
 	selectedCount,
 	multiSelectTo,
@@ -343,7 +342,7 @@ export const Card = memo(function Card({
 				},
 			}),
 		);
-	}, [instanceId, item, userId]);
+		}, [instanceId, item, userId]);
 
 	const performAction = (event: KeyboardEvent | MouseEvent) => {
 		if (wasToggleInSelectionGroupKeyUsed(event)) {
@@ -386,19 +385,19 @@ export const Card = memo(function Card({
 				ref={ref}
 				item={item}
 				state={state}
-				isDragging={isDragging}
+				// isDragging={isDragging}
 				isSelected={isSelected}
 				onClick={handleCardClick}
 			/>
 			<button
 				ref={actionMenuTriggerRef}
 				onClick={toggleMenu}
-				className="absolute top-2 right-2 p-1 rounded-full bg-white text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
+				className="absolute p-1 text-gray-700 bg-white rounded-full top-2 right-2 hover:bg-gray-100 focus:outline-none focus:ring-offset-gray-100 focus:ring-indigo-500"
 			>
-				<MoreVertical className="h-4 w-4" />
+				<MoreVertical className="w-4 h-4" />
 			</button>
 			{isMenuOpen && (
-				<div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+				<div className="absolute right-0 z-10 w-56 mt-2 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
 					<LazyDropdownItems userId={userId} onClose={() => setIsMenuOpen(false)} />
 				</div>
 			)}
@@ -418,7 +417,11 @@ export const Card = memo(function Card({
 						}}
 					>
 						<CardPrimitive item={item} state={state} isSelected />
-						{selectedCount > 0 && <div className="absolute right-[-0.25rem] top-[-0.25rem] text-white bg-gray-300 rounded-full h-8 w-8 leading-6 text-center font-semibold">{selectedCount}</div>}
+						{selectedCount > 0 && (
+							<div className="absolute right-[-0.25rem] top-[-0.25rem] text-white bg-gray-300 rounded-full h-8 w-8 flex items-center justify-center font-semibold">
+								<span>{selectedCount}</span>
+							</div>
+						)}
 					</div>,
 					state.container,
 				)}

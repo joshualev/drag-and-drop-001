@@ -4,20 +4,38 @@ import invariant from 'tiny-invariant';
 
 import type { CleanupFn } from '@atlaskit/pragmatic-drag-and-drop/types';
 
-import type { ColumnType } from '../data/people';
+import type { ColumnType, ColumnMap } from '../data/people';
 import type { Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/types';
+
 export type BoardContextValue = {
 	getColumns: () => ColumnType[];
 
-	reorderColumn: (args: { startIndex: number; finishIndex: number, closestEdgeOfTarget: Edge }) => void;
+	reorderColumn: (args: { 
+		startIndex: number; 
+		finishIndex: number, 
+		closestEdgeOfTarget: Edge 
+	}) => void;
 
-	reorderCard: (args: { columnId: string; startIndex: number; finishIndex: number, closestEdgeOfTarget: Edge }) => void;
+	reorderCard: (args: { 
+		columnId: string; 
+		startIndex: number; 
+		finishIndex: number, 
+		closestEdgeOfTarget: Edge 
+	}) => void;
 
 	moveCard: (args: {
 		startColumnId: string;
 		finishColumnId: string;
 		itemIndexInStartColumn: number;
 		itemIndexInFinishColumn?: number;
+	}) => void;
+
+	multiDragReorder: (args: {
+		data: { columnMap: ColumnMap; orderedColumnIds: string[] };
+		selectedUserIds: string[];
+		draggedItemId: string;
+		destinationColumnId: string;
+		finalIndex: number;
 	}) => void;
 
 	registerCard: (args: {
@@ -36,6 +54,8 @@ export type BoardContextValue = {
 	}) => CleanupFn;
 
 	instanceId: symbol;
+
+
 };
 
 export const BoardContext = createContext<BoardContextValue | null>(null);

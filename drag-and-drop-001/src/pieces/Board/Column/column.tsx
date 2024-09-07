@@ -46,7 +46,7 @@ type ColumnProps = {
 export const Column = memo(function Column({
   column,
   selectedUserIds,
-  isDraggingCard,
+  // isDraggingCard,
   multiSelectTo,
   toggleSelection,
   toggleSelectionInGroup,
@@ -188,17 +188,17 @@ export const Column = memo(function Column({
   return (
     <ColumnContext.Provider value={contextValue}>
       <div className={`${columnClasses} flex flex-col h-[480px]`} ref={columnRef}>
-        <div className="p-2 flex justify-between text-gray-600 select-none" ref={headerRef} data-testid={`column-${columnId}--header`}>
+        <div className="flex justify-between p-2 text-gray-600 select-none" ref={headerRef} data-testid={`column-${columnId}--header`}>
           <h3 className="text-sm font-medium">{column.title}</h3>
           <ActionMenu />
         </div>
         <div className="flex-grow overflow-y-auto" ref={scrollContainerRef}>
-          <div className="box-border min-h-full gap-2 flex flex-col p-2" ref={cardListRef}>
+          <div className="box-border flex flex-col min-h-full gap-2 p-2" ref={cardListRef}>
             {column.items.map((item) => (
               <Card
                 item={item}
                 key={item.userId}
-                isDragging={isDraggingCard}
+                // isDragging={isDraggingCard}
                 isSelected={selectedUserIds.some((id) => id === item.userId)}
                 selectedCount={selectedUserIds.length}
                 multiSelectTo={multiSelectTo}
@@ -269,7 +269,7 @@ function ActionMenuItems({ onClose }: { onClose: () => void }) {
   const isMoveRightDisabled = startIndex === columns.length - 1;
 
   return (
-    <div className="absolute z-10 right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+    <div className="absolute right-0 z-10 w-56 mt-2 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
       <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
         <button
           onClick={moveLeft}
@@ -301,12 +301,12 @@ function DropdownMenuTrigger({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex justify-center items-center w-8 h-8 rounded-full bg-white text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
+      className="inline-flex items-center justify-center w-8 h-8 text-gray-700 bg-white rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
       id="options-menu"
       aria-haspopup="true"
       aria-expanded="true"
     >
-      <MoreVertical className="h-5 w-5" />
+      <MoreVertical className="w-5 h-5" />
     </button>
   );
 }
