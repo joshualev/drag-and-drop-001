@@ -8,6 +8,8 @@ import React, {
 	useRef,
 	useState,
 	useCallback,
+	Fragment,
+	Ref
 } from 'react';
 
 import ReactDOM from 'react-dom';
@@ -25,38 +27,31 @@ import {
 	dropTargetForElements,
 } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { setCustomNativeDragPreview } from '@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview';
-
 import { type Person, type ColumnType } from '../../../../data/people';
 import { useBoardContext } from '../../../board-context';
 import { useColumnContext } from '../column-context';
 
 import { MoreVertical } from 'lucide-react';
+import clsx from 'clsx';
+
 type DraggableState =
 	| { type: 'idle' }
 	| { type: 'preview'; container: HTMLElement; rect: DOMRect }
-	| { type: 'is-card-over'; closestEdge: Edge | null }
 	| { type: 'dragging' };
 
 const idleState: DraggableState = { type: 'idle' };
 const draggingState: DraggableState = { type: 'dragging' };
 
-const stateStyles: {
-	[Key in DraggableState['type']]?: string | undefined;
-} = {
-	dragging: 'opacity-40',
-};
-
-const selectedStyles = 'bg-indigo-100';
-const draggingStyles = 'opacity-40';
 
 // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
 const primaryButton = 0;
 
 type CardPrimitiveProps = {
-	// isDragging?: boolean;
 	isSelected: boolean;
+	closestEdge: Edge | null;
 	item: Person;
 	state: DraggableState;
+	actionMenuTriggerRef?: Ref<HTMLButtonElement>;
 	onClick?: MouseEventHandler;
 };
 
@@ -187,7 +182,7 @@ function LazyDropdownItems({ userId, onClose }: { userId: string; onClose: () =>
 
 
 const CardPrimitive = forwardRef<HTMLDivElement, CardPrimitiveProps>(function CardPrimitive(
-	{ item, isSelected, state, onClick },
+	{ item, state, closestEdge, isSelected, actionMenuTriggerRef, onClick },
 	ref,
 ) {
 	const { avatarUrl, name, role, userId } = item;
@@ -196,19 +191,36 @@ const CardPrimitive = forwardRef<HTMLDivElement, CardPrimitiveProps>(function Ca
 		<div
 			ref={ref}
 			data-testid={`item-${userId}`}
-			className={`relative grid grid-cols-[auto_1fr_auto] gap-2 items-center p-2 rounded-lg shadow-md bg-white ${stateStyles[state.type]} ${isSelected ? selectedStyles : ''} ${isSelected && state.type === 'dragging' ? draggingStyles : ''}`}
+		className={clsx(
+				'relative grid grid-cols-[auto_1fr_auto] gap-3 items-center p-3 rounded-lg shadow-md transition-all duration-200',
+				!isSelected && 'bg-white hover:bg-gray-50',
+				isSelected && 'bg-indigo-100 hover:bg-indigo-200',
+				state.type === 'dragging' && 'opacity-50 shadow-lg',
+				state.type === 'preview' && 'opacity-100 bg-white shadow-xl',
+			)}
 			onClick={onClick}
 			role="button"
 			tabIndex={0}
 		>
+
+			<button
+				ref={actionMenuTriggerRef}
+				// onClick={toggleMenu}
+				className="absolute p-1 text-gray-700 bg-white rounded-full top-2 right-2 hover:bg-gray-100 focus:outline-none focus:ring-offset-gray-100 focus:ring-indigo-500"
+			>
+				<MoreVertical className="w-4 h-4" />
+			</button>
+			{/* {isMenuOpen && (
+				<div className="absolute right-0 z-10 w-56 mt-2 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
+					<LazyDropdownItems userId={userId} onClose={() => setIsMenuOpen(false)} />
+				</div>
+			)} */}
 			<img src={avatarUrl} alt={`${name}'s avatar`} className="w-12 h-12 rounded-full pointer-events-none" />
 			<div className="flex flex-col space-y-1">
 				<span className="text-sm font-semibold">{name}</span>
 				<span className="text-xs text-gray-500">{role}</span>
 			</div>
-			{state.type === 'is-card-over' && state.closestEdge && (
-				<DropIndicator edge={state.closestEdge} gap='8px' />
-			)}
+			{closestEdge && <DropIndicator edge={closestEdge} gap='8px' />}
 		</div>
 	);
 });
@@ -224,7 +236,6 @@ const wasMultiSelectKeyUsed = (event: MouseEvent | KeyboardEvent) => event.shift
 
 type CardProps = {
 	item: Person;
-	// isDragging: boolean;
 	isSelected: boolean;
 	selectedCount: number;
 	multiSelectTo: (id: string) => void;
@@ -234,20 +245,22 @@ type CardProps = {
 
 export const Card = memo(function Card({
 	item,
-	// isDragging,
 	isSelected,
 	selectedCount,
 	multiSelectTo,
 	toggleSelection,
 	toggleSelectionInGroup,
 }: CardProps) {
+
 	const ref = useRef<HTMLDivElement | null>(null);
 	const { userId } = item;
-	const [state, setState] = useState<DraggableState>(idleState);
+	const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
-	const actionMenuTriggerRef = useRef<HTMLButtonElement>(null);
+	const [state, setState] = useState<DraggableState>(idleState);
 
+	const actionMenuTriggerRef = useRef<HTMLButtonElement>(null);
 	const { instanceId, registerCard } = useBoardContext();
+
 	useEffect(() => {
 		invariant(actionMenuTriggerRef.current);
 		invariant(ref.current);
@@ -261,13 +274,15 @@ export const Card = memo(function Card({
 	}, [registerCard, userId]);
 
 	useEffect(() => {
-		invariant(ref.current);
+		const element = ref.current;
+		invariant(element);
 		return combine(
 			draggable({
-				element: ref.current,
+				element: element,
 				getInitialData: () => ({ type: 'card', itemId: userId, instanceId }),
 				onGenerateDragPreview: ({ location, source, nativeSetDragImage }) => {
 					const rect = source.element.getBoundingClientRect();
+
 					setCustomNativeDragPreview({
 						nativeSetDragImage,
 						getOffset() {
@@ -288,17 +303,19 @@ export const Card = memo(function Card({
 						},
 					});
 				},
+
 				onDragStart: () => setState(draggingState),
 				onDrop: () => setState(idleState),
 			}),
 			dropTargetForElements({
-				element: ref.current,
+				element: element,
 				canDrop: ({ source }) => {
 					return source.data.instanceId === instanceId && source.data.type === 'card';
 				},
 				getIsSticky: () => true,
 				getData: ({ input, element }) => {
 					const data = { type: 'card', itemId: userId };
+
 					return attachClosestEdge(data, {
 						input,
 						element,
@@ -306,43 +323,51 @@ export const Card = memo(function Card({
 					});
 				},
 				onDragEnter: (args) => {
-					if (args.source.data.itemId === userId) {
-						return;
+					if (args.source.data.itemId !== userId) {
+						setClosestEdge(extractClosestEdge(args.self.data));
 					}
-					const closestEdge: Edge | null = extractClosestEdge(args.self.data);
-					setState({
-						type: 'is-card-over',
-						closestEdge,
-					});
 				},
 				onDrag: (args) => {
-					if (args.source.data.itemId === userId) {
-						return;
+					if (args.source.data.itemId !== userId) {
+						setClosestEdge(extractClosestEdge(args.self.data));
 					}
-					const closestEdge: Edge | null = extractClosestEdge(args.self.data);
-					// conditionally update react state if change has occurred
-					setState((current) => {
-						if (current.type !== 'is-card-over') {
-							return current;
-						}
-						if (current.closestEdge === closestEdge) {
-							return current;
-						}
-						return {
-							type: 'is-card-over',
-							closestEdge,
-						};
-					});
 				},
+
 				onDragLeave: () => {
-					setState(idleState);
+					setClosestEdge(null);
 				},
 				onDrop: () => {
-					setState(idleState);
+					setClosestEdge(null);
 				},
+				// onDrag: (args) => {
+				// 	console.log('state', state);
+				// 	if (args.source.data.itemId === userId) {
+				// 		return;
+				// 	}
+				// 	const closestEdge: Edge | null = extractClosestEdge(args.self.data);
+				// 	// conditionally update react state if change has occurred
+				// 	setState((current) => {
+				// 		if (current.type !== 'is-card-over') {
+				// 			return current;
+				// 		}
+				// 		if (current.closestEdge === closestEdge) {
+				// 			return current;
+				// 		}
+				// 		return {
+				// 			type: 'is-card-over',
+				// 			closestEdge,
+				// 		};
+				// 	});
+				// },
+				// onDragLeave: () => {
+				// 	setState(idleState);
+				// },
+				// onDrop: () => {
+				// 	setState(idleState);
+				// },
 			}),
 		);
-		}, [instanceId, item, userId]);
+	}, [instanceId, item, userId]);
 
 	const performAction = (event: KeyboardEvent | MouseEvent) => {
 		if (wasToggleInSelectionGroupKeyUsed(event)) {
@@ -379,52 +404,94 @@ export const Card = memo(function Card({
 	};
 	
 	
-	return (
-		<div className="relative">
-			<CardPrimitive
-				ref={ref}
-				item={item}
-				state={state}
-				// isDragging={isDragging}
-				isSelected={isSelected}
-				onClick={handleCardClick}
-			/>
-			<button
-				ref={actionMenuTriggerRef}
-				onClick={toggleMenu}
-				className="absolute p-1 text-gray-700 bg-white rounded-full top-2 right-2 hover:bg-gray-100 focus:outline-none focus:ring-offset-gray-100 focus:ring-indigo-500"
-			>
-				<MoreVertical className="w-4 h-4" />
-			</button>
-			{isMenuOpen && (
-				<div className="absolute right-0 z-10 w-56 mt-2 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
-					<LazyDropdownItems userId={userId} onClose={() => setIsMenuOpen(false)} />
-				</div>
+// 	return (
+// 		<div className="relative">
+// 			<CardPrimitive
+// 				ref={ref}
+// 				item={item}
+// 				state={state}
+// 				isSelected={isSelected}
+// 				onClick={handleCardClick}
+// 			/>
+// 			<button
+// 				ref={actionMenuTriggerRef}
+// 				onClick={toggleMenu}
+// 				className="absolute p-1 text-gray-700 bg-white rounded-full top-2 right-2 hover:bg-gray-100 focus:outline-none focus:ring-offset-gray-100 focus:ring-indigo-500"
+// 			>
+// 				<MoreVertical className="w-4 h-4" />
+// 			</button>
+// 			{isMenuOpen && (
+// 				<div className="absolute right-0 z-10 w-56 mt-2 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
+// 					<LazyDropdownItems userId={userId} onClose={() => setIsMenuOpen(false)} />
+// 				</div>
+// 			)}
+// 			{state.type === 'preview' &&
+// 				ReactDOM.createPortal(
+// 					<div
+// 						style={{
+// 							/**
+// 							 * Ensuring the preview has the same dimensions as the original.
+// 							 *
+// 							 * Using `border-box` sizing here is not necessary in this
+// 							 * specific example, but it is safer to include generally.
+// 							 */
+// 							boxSizing: 'border-box',
+// 							width: state.rect.width,
+// 							height: state.rect.height,
+// 						}}
+// 					>
+// 						<CardPrimitive item={item} state={state} isSelected />
+// 						{selectedCount > 0 && (
+// 							<div className="absolute right-[-0.25rem] top-[-0.25rem] text-white bg-gray-300 rounded-full h-8 w-8 flex items-center justify-center font-semibold">
+// 								<span>{selectedCount}</span>
+// 							</div>
+// 						)}
+// 					</div>,
+// 					state.container,
+// 				)}
+// 		</div>
+// 	);
+// });
+
+
+
+
+return (
+	<Fragment>
+		<CardPrimitive
+			ref={ref}
+			item={item}
+			state={state}
+			closestEdge={closestEdge}
+			isSelected={isSelected}
+			actionMenuTriggerRef={actionMenuTriggerRef}
+			onClick={handleCardClick}
+		/>
+		{state.type === 'preview' &&
+			ReactDOM.createPortal(
+				<div
+					style={{
+						/**
+						 * Ensuring the preview has the same dimensions as the original.
+						 *
+						 * Using `border-box` sizing here is not necessary in this
+						 * specific example, but it is safer to include generally.
+						 */
+						boxSizing: 'border-box',
+						width: state.rect.width,
+						height: state.rect.height,
+					}}
+				>
+
+					<CardPrimitive item={item} state={state} closestEdge={null} isSelected={isSelected} />
+					{selectedCount > 0 && (
+						<div className="absolute right-[-0.25rem] top-[-0.25rem] text-white bg-gray-300 rounded-full h-8 w-8 flex items-center justify-center font-semibold">
+							<span>{selectedCount}</span>
+						</div>
+					)}
+				</div>,
+				state.container,
 			)}
-			{state.type === 'preview' &&
-				ReactDOM.createPortal(
-					<div
-						style={{
-							/**
-							 * Ensuring the preview has the same dimensions as the original.
-							 *
-							 * Using `border-box` sizing here is not necessary in this
-							 * specific example, but it is safer to include generally.
-							 */
-							boxSizing: 'border-box',
-							width: state.rect.width,
-							height: state.rect.height,
-						}}
-					>
-						<CardPrimitive item={item} state={state} isSelected />
-						{selectedCount > 0 && (
-							<div className="absolute right-[-0.25rem] top-[-0.25rem] text-white bg-gray-300 rounded-full h-8 w-8 flex items-center justify-center font-semibold">
-								<span>{selectedCount}</span>
-							</div>
-						)}
-					</div>,
-					state.container,
-				)}
-		</div>
-	);
+	</Fragment>
+);
 });

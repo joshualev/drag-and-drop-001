@@ -15,52 +15,52 @@ import { BoardContext, type BoardContextValue } from './board-context';
 import { Column } from './Board/Column/column';
 import { createRegistry } from './Board/registry';
 
-type Outcome =
-	| {
+	type Outcome =
+		| {
 			type: 'column-reorder';
 			columnId: string;
 			startIndex: number;
 			finishIndex: number;
-	  }
-	| {
+		}
+		| {
 			type: 'card-reorder';
 			columnId: string;
 			startIndex: number;
 			finishIndex: number;
-	  }
-	| {
+		}
+		| {
 			type: 'card-move';
 			finishColumnId: string;
 			itemIndexInStartColumn: number;
 			itemIndexInFinishColumn: number;
-	  }
-      | {
-            type: 'multi-card-drag';
-            selectedUserIds: string[];
-            draggedItemId: string;
-            destinationColumnId: string;
-            finalIndex: number;
-        };
+		}
+		| {
+			type: 'multi-card-drag';
+			selectedUserIds: string[];
+			draggedItemId: string;
+			destinationColumnId: string;
+			finalIndex: number;
+		};
 
-type BoardState = {
-    columnMap: ColumnMap;
-    orderedColumnIds: string[];
-    lastOperation: Outcome | null;
-    };
+	type BoardState = {
+		columnMap: ColumnMap;
+		orderedColumnIds: string[];
+		lastOperation: Outcome | null;
+	};
 
-type SortUserIdsArgs = {
-	draggedItemId: string;
-	data: { columnMap: ColumnMap; orderedColumnIds: string[] };
-	selectedUserIds: string[];
-};
+	type SortUserIdsArgs = {
+		draggedItemId: string;
+		data: { columnMap: ColumnMap; orderedColumnIds: string[] };
+		selectedUserIds: string[];
+	};
 
-type MultiDragReorderArgs = {
-	data: { columnMap: ColumnMap; orderedColumnIds: string[] };
-	selectedUserIds: string[];
-	draggedItemId: string;
-	destinationColumnId: string;
-	finalIndex: number;
-};
+	type MultiDragReorderArgs = {
+		data: { columnMap: ColumnMap; orderedColumnIds: string[] };
+		selectedUserIds: string[];
+		draggedItemId: string;
+		destinationColumnId: string;
+		finalIndex: number;
+	};
 
 
 // get the column that the user is in
@@ -247,8 +247,6 @@ export default function BoardExample() {
 		}
 
 		// multi card drag
-		// 1. Apply post-move flash to all moved cards
-		// 2. Unset selected card IDs
 		if (lastOperation.type === 'multi-card-drag') {
 			const { destinationColumnId, finalIndex, selectedUserIds } = lastOperation;
 		
@@ -415,71 +413,66 @@ export default function BoardExample() {
 	);
 
 
-// multi drag reorder function
-// 1. Remove all selected items from their original column
-// 2. Calculate the new order of items (sort selectedUserIds by their index in their present column)
-// 3. Insert them back in at the correct index
-const multiDragReorder = useCallback((args: MultiDragReorderArgs) => {
-	const { data, selectedUserIds, draggedItemId, destinationColumnId, finalIndex } = args;
-	// 1. Remove all selected items from their columns
-	const withRemovedItems = data.orderedColumnIds.reduce((acc, columnId) => {
-		const column = data.columnMap[columnId];
-		const items = column.items.filter((item) => !selectedUserIds.includes(item.userId));
-		return {
-			...acc,
-			[columnId]: withNewItems(column, items),
+	const multiDragReorder = useCallback((args: MultiDragReorderArgs) => {
+		const { data, selectedUserIds, draggedItemId, destinationColumnId, finalIndex } = args;
+		// 1. Remove all selected items from their columns
+		const withRemovedItems = data.orderedColumnIds.reduce((acc, columnId) => {
+			const column = data.columnMap[columnId];
+			const items = column.items.filter((item) => !selectedUserIds.includes(item.userId));
+			return {
+				...acc,
+				[columnId]: withNewItems(column, items),
+			};
+		}, {} as ColumnMap);
+
+		// 2. Calculate the new order of items (sort selectedUserIds by their index in their own column)
+		const orderedSelectedUserIds = sortUserIds({
+			data,
+			draggedItemId,
+			selectedUserIds,
+		});
+
+		const orderedSelectedItems = orderedSelectedUserIds.map(
+			(id) =>
+				getHomeColumn({
+					columnMap: data.columnMap,
+					orderedColumnIds: data.orderedColumnIds,
+					userId: id,
+				}).items.find((i) => i.userId === id)!,
+		);
+
+		// 3. Insert them back in at the correct index
+		const final: ColumnType = withRemovedItems[destinationColumnId];
+		const withInserted = (() => {
+			const base = [...final.items];
+			base.splice(finalIndex, 0, ...orderedSelectedItems);
+			return base;
+		})();
+
+		const withAddedTasks = {
+			...withRemovedItems,
+			[destinationColumnId]: withNewItems(final, withInserted),
 		};
-	}, {} as ColumnMap);
 
-	// 2. Calculate the new order of items (sort selectedUserIds by their index in their own column)
-	const orderedSelectedUserIds = sortUserIds({
-		data,
-		draggedItemId,
-		selectedUserIds,
-	});
+		// Create the lastOperation outcome
+		const outcome: Outcome = {
+			type: 'multi-card-drag',
+			selectedUserIds: orderedSelectedUserIds,
+			draggedItemId,
+			destinationColumnId,
+			finalIndex,
+		};
 
-	const orderedSelectedItems = orderedSelectedUserIds.map(
-		(id) =>
-			getHomeColumn({
-				columnMap: data.columnMap,
-				orderedColumnIds: data.orderedColumnIds,
-				userId: id,
-			}).items.find((i) => i.userId === id)!,
-	);
-
-	// 3. Insert them back in at the correct index
-	const final: ColumnType = withRemovedItems[destinationColumnId];
-	const withInserted = (() => {
-		const base = [...final.items];
-		base.splice(finalIndex, 0, ...orderedSelectedItems);
-		return base;
-	})();
-
-	const withAddedTasks = {
-		...withRemovedItems,
-		[destinationColumnId]: withNewItems(final, withInserted),
-	};
-
-	// Create the lastOperation outcome
-	const outcome: Outcome = {
-		type: 'multi-card-drag',
-		selectedUserIds: orderedSelectedUserIds,
-		draggedItemId,
-		destinationColumnId,
-		finalIndex,
-	};
-
-	return {
-		reorderedColumnMap: withAddedTasks,
-		orderedSelectedUserIds,
-		lastOperation: outcome,
-	};
-}, []);
+		return {
+			reorderedColumnMap: withAddedTasks,
+			orderedSelectedUserIds,
+			lastOperation: outcome,
+		};
+	}, []);
 
 
     const [instanceId] = useState(() => Symbol('instance-id'));
 	const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-	const [isDraggingCard, setIsDraggingCard] = useState(false);
     
     useEffect(() => {
 		return combine(
@@ -487,27 +480,9 @@ const multiDragReorder = useCallback((args: MultiDragReorderArgs) => {
 				canMonitor({ source }) {
 					return source.data.instanceId === instanceId;
 				},
-                onGenerateDragPreview({ source }) {
-                    if (source.data.type === 'card') {
-                        const itemId = source.data.itemId;
-                        invariant(typeof itemId === 'string');
-                        if (!selectedUserIds.includes(itemId)) {
-                            setSelectedUserIds([]);
-                        }
-                    }
-                },
-                onDragStart({ source }) {
-                    if (source.data.type === 'card') {
-                        setIsDraggingCard(true);
-                    }
-                },
 				onDrop(args) {
                     const { location, source } = args;
 
-                    if (source.data.type === 'card') {
-                        setIsDraggingCard(false);
-                    }
-    
 					// didn't drop on anything
 					if (!location.current.dropTargets.length) {
 						return;
@@ -771,7 +746,7 @@ const multiDragReorder = useCallback((args: MultiDragReorderArgs) => {
 			registerColumn: registry.registerColumn,
 			instanceId,
 		};
-	}, [getColumns, reorderColumn, reorderCard, registry, moveCard, instanceId, multiDragReorder]);
+	}, [getColumns, reorderColumn, reorderCard, moveCard, multiDragReorder, registry, instanceId]);
 
 	return (
         <BoardContext.Provider value={contextValue}>
@@ -781,7 +756,6 @@ const multiDragReorder = useCallback((args: MultiDragReorderArgs) => {
                         <Column
                             column={data.columnMap[columnId]}
                             key={columnId}
-                            isDraggingCard={isDraggingCard}
                             selectedUserIds={selectedUserIds}
                             multiSelectTo={multiSelectTo}
                             toggleSelection={toggleSelection}

@@ -36,7 +36,6 @@ const isCardOver: State = { type: 'is-card-over' };
 
 type ColumnProps = {
   column: ColumnType;
-  isDraggingCard: boolean;
   selectedUserIds: string[];
   multiSelectTo: (userId: string) => void;
   toggleSelection: (userId: string) => void;
@@ -46,7 +45,6 @@ type ColumnProps = {
 export const Column = memo(function Column({
   column,
   selectedUserIds,
-  // isDraggingCard,
   multiSelectTo,
   toggleSelection,
   toggleSelectionInGroup,
@@ -198,7 +196,6 @@ export const Column = memo(function Column({
               <Card
                 item={item}
                 key={item.userId}
-                // isDragging={isDraggingCard}
                 isSelected={selectedUserIds.some((id) => id === item.userId)}
                 selectedCount={selectedUserIds.length}
                 multiSelectTo={multiSelectTo}
