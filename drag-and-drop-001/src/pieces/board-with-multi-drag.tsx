@@ -209,6 +209,9 @@ export default function BoardExample() {
 			const entry = registry.getColumn(sourceColumn.columnId);
 			triggerPostMoveFlash(entry.element);
 
+			// reset the selectedUserIds just incase
+			setSelectedUserIds([]);
+
 			return;
 		}
         // card reorder
@@ -221,6 +224,9 @@ export default function BoardExample() {
 
 			const entry = registry.getCard(item.userId);
 			triggerPostMoveFlash(entry.element);
+
+			// reset the selectedUserIds just incase
+			setSelectedUserIds([]);
 
 			return;
 		}
@@ -236,12 +242,14 @@ export default function BoardExample() {
 			const entry = registry.getCard(item.userId);
 			triggerPostMoveFlash(entry.element);
 
-
 			/**
 			 * Because the card has moved column, it will have remounted.
 			 * This means we need to manually restore focus to it.
 			 */
 			entry.actionMenuTrigger.focus();
+
+			// reset the selectedUserIds just incase
+			setSelectedUserIds([]);
 
 			return;
 		}
@@ -261,6 +269,7 @@ export default function BoardExample() {
 					triggerPostMoveFlash(entry.element);
 				}
 			});
+
 		
 			// Unset selected card IDs
 			setSelectedUserIds([]);
@@ -718,7 +727,7 @@ export default function BoardExample() {
 		setSelectedUserIds(newIds);
 	};
 
-	// This behaviour matches the MacOSX finder selection
+	// This behavior matches the MacOSX finder selection
 	const multiSelectTo = (userId: string) => {
 		const updated = multiSelect({
 			columnMap: data.columnMap,

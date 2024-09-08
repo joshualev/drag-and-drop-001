@@ -14,7 +14,6 @@ import React, {
 
 import ReactDOM from 'react-dom';
 import invariant from 'tiny-invariant';
-
 import {
 	attachClosestEdge,
 	type Edge,
@@ -30,7 +29,8 @@ import { setCustomNativeDragPreview } from '@atlaskit/pragmatic-drag-and-drop/el
 import { type Person, type ColumnType } from '../../../../data/people';
 import { useBoardContext } from '../../../board-context';
 import { useColumnContext } from '../column-context';
-// import { DropdownMenu, DropdownTrigger } from '../../../../components/DropdownMenu';
+
+import { DropdownMenu, DropdownTrigger, DropdownItem } from '../../../../components/DropdownMenu';
 import { MoreVertical } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -55,7 +55,6 @@ type CardPrimitiveProps = {
 	onClick?: MouseEventHandler;
 };
 
-
 const CardPrimitive = forwardRef<HTMLDivElement, CardPrimitiveProps>(function CardPrimitive(
 	{ item, state, closestEdge, actionMenuTriggerRef, isSelected, onClick },
 	ref,
@@ -66,6 +65,7 @@ const CardPrimitive = forwardRef<HTMLDivElement, CardPrimitiveProps>(function Ca
 		<div
 			ref={ref}
 			data-testid={`item-${userId}`}
+			data-selected={isSelected}
 			className={clsx(
 				'relative grid grid-cols-[auto_1fr_auto] gap-3 items-center p-3 rounded-lg shadow-md transition-all duration-200',
 				!isSelected && 'bg-white hover:bg-gray-50',
@@ -120,7 +120,6 @@ export const Card = memo(function Card({
 	const ref = useRef<HTMLDivElement | null>(null);
 	const { userId } = item;
 	const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
-	// const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [state, setState] = useState<DraggableState>(idleState);
 
 	const actionMenuTriggerRef = useRef<HTMLButtonElement>(null);
@@ -278,162 +277,71 @@ return (
 );
 });
 
-
-
-
-
 function ActionMenu({ actionMenuTriggerRef, cardId }: { actionMenuTriggerRef?: ForwardedRef<HTMLButtonElement>, cardId: string }) {
-	const [isOpen, setIsOpen] = useState(false);
-	const toggleMenu = () => setIsOpen(!isOpen);
-  
-	return (
-	  <div className="relative inline-block text-left">
-		<DropdownMenuTrigger onClick={toggleMenu} actionMenuTriggerRef={actionMenuTriggerRef} />
-		{isOpen && <ActionMenuItems onClose={() => setIsOpen(false)} cardId={cardId} />}
-	  </div>
-	);
-  }
-
-
-  function DropdownMenuTrigger({ onClick, actionMenuTriggerRef }: { onClick: () => void, actionMenuTriggerRef?: ForwardedRef<HTMLButtonElement> }) {
-	return (
-	  <button
-	  	ref={actionMenuTriggerRef}
-		type="button"
-		onClick={onClick}
-		className="inline-flex items-center justify-center w-8 h-8 text-gray-700 bg-white rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
-		id="options-menu"
-		aria-haspopup="true"
-		aria-expanded="true"
-	  >
-		<MoreVertical className="w-4 h-4" />
-	  </button>
-	);
-  }
-
-  function MoveToOtherColumnItem({
-	targetColumn,
-	startIndex,
-	onClose,
-}: {
-	targetColumn: ColumnType;
-	startIndex: number;
-	onClose: () => void;
-}) {
-	const { moveCard } = useBoardContext();
-	const { columnId } = useColumnContext();
-
-	const onClick = useCallback(() => {
-		moveCard({
-			startColumnId: columnId,
-			finishColumnId: targetColumn.columnId,
-			itemIndexInStartColumn: startIndex,
-		});
-		onClose();
-	}, [columnId, moveCard, startIndex, targetColumn.columnId, onClose]);
-
-	return (
-		<button
-			onClick={onClick}
-			className="block w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-			role="menuitem"
-		>
-			{targetColumn.title}
-		</button>
-	);
-}
-  
-  function ActionMenuItems({ onClose, cardId }: { onClose: () => void, cardId: string }) {
-	const { getColumns, reorderCard } = useBoardContext();
+	const { getColumns, reorderCard, moveCard } = useBoardContext();
 	const { columnId, getCardIndex, getNumCards } = useColumnContext();
-
-	const numCards = getNumCards();
+  
 	const startIndex = getCardIndex(cardId);
-
+	const numCards = getNumCards();
+  
 	const moveToTop = useCallback(() => {
-		reorderCard({ columnId, startIndex, finishIndex: 0, closestEdgeOfTarget: 'top' });
-		onClose();
-	}, [columnId, reorderCard, startIndex, onClose]);
-
+	  reorderCard({ columnId, startIndex, finishIndex: 0, closestEdgeOfTarget: 'top' });
+	}, [columnId, reorderCard, startIndex]);
+  
 	const moveUp = useCallback(() => {
-		reorderCard({ columnId, startIndex, finishIndex: startIndex - 1, closestEdgeOfTarget: 'top' });
-		onClose();
-	}, [columnId, reorderCard, startIndex, onClose]);
-
+	  reorderCard({ columnId, startIndex, finishIndex: startIndex - 1, closestEdgeOfTarget: 'top' });
+	}, [columnId, reorderCard, startIndex]);
+  
 	const moveDown = useCallback(() => {
-		reorderCard({ columnId, startIndex, finishIndex: startIndex + 1, closestEdgeOfTarget: 'bottom' });
-		onClose();
-	}, [columnId, reorderCard, startIndex, onClose]);
-
+	  reorderCard({ columnId, startIndex, finishIndex: startIndex + 1, closestEdgeOfTarget: 'bottom' });
+	}, [columnId, reorderCard, startIndex]);
+  
 	const moveToBottom = useCallback(() => {
-		reorderCard({ columnId, startIndex, finishIndex: numCards - 1, closestEdgeOfTarget: 'bottom' });
-		onClose();
-	}, [columnId, reorderCard, startIndex, numCards, onClose]);
-
+	  reorderCard({ columnId, startIndex, finishIndex: numCards - 1, closestEdgeOfTarget: 'bottom' });
+	}, [columnId, reorderCard, startIndex, numCards]);
+  
 	const isMoveUpDisabled = startIndex === 0;
 	const isMoveDownDisabled = startIndex === numCards - 1;
-
-	const moveColumnOptions = getColumns().filter((column) => column.columnId !== columnId);
-	return (
-		<div className="absolute right-0 z-10 w-40 bg-white border border-gray-100 rounded shadow-md top-11">
-		<div className="py-1" role="menu" aria-orientation="vertical">
-			<div className="px-3 py-2 text-xs font-semibold text-gray-500">Reorder</div>
-			<button
-				onClick={moveToTop}
-				disabled={isMoveUpDisabled}
-				className={`block w-full text-left px-4 py-2 text-sm ${
-					isMoveUpDisabled ? 'text-gray-400' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-				}`}
-				role="menuitem"
-			>
-				Move to top
-			</button>
-			<button
-				onClick={moveUp}
-				disabled={isMoveUpDisabled}
-				className={`block w-full text-left px-4 py-2 text-sm ${
-					isMoveUpDisabled ? 'text-gray-400' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-				}`}
-				role="menuitem"
-			>
-				Move up
-			</button>
-			<button
-				onClick={moveDown}
-				disabled={isMoveDownDisabled}
-				className={`block w-full text-left px-4 py-2 text-sm ${
-					isMoveDownDisabled ? 'text-gray-400' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-				}`}
-				role="menuitem"
-			>
-				Move down
-			</button>
-			<button
-				onClick={moveToBottom}
-				disabled={isMoveDownDisabled}
-				className={`block w-full text-left px-4 py-2 text-sm ${
-					isMoveDownDisabled ? 'text-gray-400' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-				}`}
-				role="menuitem"
-			>
-				Move to bottom
-			</button>
-			{moveColumnOptions.length > 0 && (
-				<>
-					<div className="my-1 border-t border-gray-100"></div>
-					<div className="px-3 py-2 text-xs font-semibold text-gray-500">Move to</div>
-					{moveColumnOptions.map((column) => (
-						<MoveToOtherColumnItem
-							key={column.columnId}
-							targetColumn={column}
-							startIndex={startIndex}
-							onClose={onClose}
-						/>
-					))}
-				</>
-			)}
-		</div>
-		</div>
-	);
-  }
   
+	const moveColumnOptions = getColumns().filter((column) => column.columnId !== columnId);
+  
+	const MoveToOtherColumnItem = useCallback(({ targetColumn }: { targetColumn: ColumnType }) => {
+	  const onClick = () => {
+		moveCard({
+		  startColumnId: columnId,
+		  finishColumnId: targetColumn.columnId,
+		  itemIndexInStartColumn: startIndex,
+		});
+	  };
+  
+	  return (
+		<DropdownItem onClick={onClick}>
+		  {targetColumn.title}
+		</DropdownItem>
+	  );
+	}, [columnId, moveCard, startIndex]);
+  
+	return (
+		<DropdownMenu id={`menu-${cardId}`}>
+		  <DropdownTrigger ref={actionMenuTriggerRef}>
+			<MoreVertical size={16} />
+		  </DropdownTrigger>
+		  <DropdownItem onClick={moveToTop} disabled={isMoveUpDisabled}>Move to top</DropdownItem>
+		  <DropdownItem onClick={moveUp} disabled={isMoveUpDisabled}>Move up</DropdownItem>
+		  <DropdownItem onClick={moveDown} disabled={isMoveDownDisabled}>Move down</DropdownItem>
+		  <DropdownItem onClick={moveToBottom} disabled={isMoveDownDisabled}>Move to bottom</DropdownItem>
+		  {moveColumnOptions.length > 0 && (
+			<>
+			  <div className="my-1 border-t border-gray-100"></div>
+			  <div className="px-3 py-2 text-xs font-semibold text-gray-500">Move to</div>
+			  {moveColumnOptions.map((column) => (
+				<MoveToOtherColumnItem
+				  key={column.columnId}
+				  targetColumn={column}
+				/>
+			  ))}
+			</>
+		  )}
+		</DropdownMenu>
+	  );
+	}
