@@ -23,6 +23,9 @@ import { type ColumnType } from '../../../data/people';
 import { ColumnContext, type ColumnContextProps, useColumnContext } from './column-context';
 import { Card } from './Card/card';
 
+
+import { DropdownMenu, DropdownTrigger, DropdownItem } from '../../../components/DropdownMenu';
+
 type State =
   | { type: 'idle' }
   | { type: 'is-card-over' }
@@ -225,20 +228,7 @@ function SafariColumnPreview({ column }: { column: ColumnType }) {
 }
 
 function ActionMenu() {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const toggleMenu = () => setIsOpen(!isOpen);
-
-  return (
-    <div className="relative inline-block text-left">
-      <DropdownMenuTrigger onClick={toggleMenu} />
-      {isOpen && <ActionMenuItems onClose={() => setIsOpen(false)} />}
-    </div>
-  );
-}
-
-function ActionMenuItems({ onClose }: { onClose: () => void }) {
-  const { columnId } = useColumnContext();
+	const { columnId } = useColumnContext();
   const { getColumns, reorderColumn } = useBoardContext();
 
   const columns = getColumns();
@@ -250,8 +240,7 @@ function ActionMenuItems({ onClose }: { onClose: () => void }) {
       finishIndex: startIndex - 1,
       closestEdgeOfTarget: 'left',
     });
-    onClose();
-  }, [reorderColumn, startIndex, onClose]);
+  }, [reorderColumn, startIndex]);
 
   const moveRight = useCallback(() => {
     reorderColumn({
@@ -259,51 +248,19 @@ function ActionMenuItems({ onClose }: { onClose: () => void }) {
       finishIndex: startIndex + 1,
       closestEdgeOfTarget: 'right',
     });
-    onClose();
-  }, [reorderColumn, startIndex, onClose]);
+  }, [reorderColumn, startIndex]);
 
   const isMoveLeftDisabled = startIndex === 0;
   const isMoveRightDisabled = startIndex === columns.length - 1;
 
-  return (
-    <div className="absolute right-0 z-10 w-56 mt-2 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
-      <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-        <button
-          onClick={moveLeft}
-          disabled={isMoveLeftDisabled}
-          className={`block w-full text-left px-4 py-2 text-sm ${
-            isMoveLeftDisabled ? 'text-gray-400' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-          }`}
-          role="menuitem"
-        >
-          Move left
-        </button>
-        <button
-          onClick={moveRight}
-          disabled={isMoveRightDisabled}
-          className={`block w-full text-left px-4 py-2 text-sm ${
-            isMoveRightDisabled ? 'text-gray-400' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-          }`}
-          role="menuitem"
-        >
-          Move right
-        </button>
-      </div>
-    </div>
-  );
-}
+	return (
+		<DropdownMenu id={`menu-${columnId}`}>
+		  <DropdownTrigger>
+			<MoreVertical size={18} />
+		  </DropdownTrigger>
+		  <DropdownItem onClick={moveLeft} disabled={isMoveLeftDisabled}>Move left</DropdownItem>
+		  <DropdownItem onClick={moveRight} disabled={isMoveRightDisabled}>Move right</DropdownItem>
 
-function DropdownMenuTrigger({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex items-center justify-center w-8 h-8 text-gray-700 bg-white rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
-      id="options-menu"
-      aria-haspopup="true"
-      aria-expanded="true"
-    >
-      <MoreVertical className="w-5 h-5" />
-    </button>
-  );
-}
+		</DropdownMenu>
+	  );
+	}
