@@ -246,6 +246,7 @@ export default function BoardExample() {
 			 * Because the card has moved column, it will have remounted.
 			 * This means we need to manually restore focus to it.
 			 */
+			console.log('entry', entry);
 			entry.actionMenuTrigger.focus();
 
 			// reset the selectedUserIds just incase

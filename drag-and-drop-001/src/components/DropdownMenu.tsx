@@ -106,7 +106,7 @@ export const DropdownTrigger = React.forwardRef<HTMLButtonElement, DropdownTrigg
     <button
       ref={ref}
       type="button"
-      className="inline-flex items-center justify-center w-8 h-8 text-gray-700 bg-white rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500"
+      className="inline-flex items-center justify-center w-8 h-8 text-gray-700 bg-white rounded-full hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-offset-gray-100 focus:ring-indigo-200"
       {...props}
     >
       {children}
